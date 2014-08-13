@@ -34,7 +34,7 @@ class fetchcrl (
         mode    => '0644',
         owner   => 'root',
         group   => 'root',
-        content => template('fetch_crl/fetch-crl.conf.erb'),
+        content => template('fetchcrl/fetch-crl.conf.erb'),
         require => Package[$pkgname],
     }
 
