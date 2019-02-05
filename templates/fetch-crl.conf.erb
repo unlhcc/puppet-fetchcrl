@@ -13,3 +13,7 @@ nowarnings
 <% if @http_proxy -%>
 http_proxy = <%= @http_proxy %>
 <% end -%>
+
+# Update all CRLs in parallel
+parallelism = 200
+httptimeout = 5
