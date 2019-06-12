@@ -5,31 +5,50 @@
 #
 
 class fetchcrl (
-    $http_proxy          = $fetchcrl::params::http_proxy,
-    $package_ensure      = $fetchcrl::params::package_ensure,
-    $package_name        = $fetchcrl::params::package_name,
-    $package_manage      = $fetchcrl::params::package_manage,
-    $service_boot_enable = $fetchcrl::params::service_boot_enable,
-    $service_boot_ensure = $fetchcrl::params::service_boot_ensure,
-    $service_boot_manage = $fetchcrl::params::service_boot_manage,
-    $service_cron_enable = $fetchcrl::params::service_cron_enable,
-    $service_cron_ensure = $fetchcrl::params::service_cron_ensure,
-    $service_cron_manage = $fetchcrl::params::service_cron_manage,
-    ) inherits fetchcrl::params {
+    Optional[Stdlib::HTTPUrl]         $http_proxy          = undef,
+    String                            $package_ensure      = 'present',
+    Boolean                           $package_manage      = true,
+    String                            $package_name        = 'fetch-crl',
+    Boolean                           $service_boot_enable = true,
+    Optional[Stdlib::Ensure::Service] $service_boot_ensure = undef,
+    Boolean                           $service_boot_manage = true,
+    Boolean                           $service_cron_enable = true,
+    Stdlib::Ensure::Service           $service_cron_ensure = 'running',
+    Boolean                           $service_cron_manage = true,
+) {
 
-    validate_string($http_proxy)
-    validate_string($package_ensure)
-    validate_string($package_name)
-    validate_bool($package_manage)
-    validate_bool($service_boot_enable)
-    validate_re($service_boot_ensure, ['^running$', '^stopped$'])
-    validate_bool($service_boot_manage)
-    validate_bool($service_cron_enable)
-    validate_re($service_cron_ensure, ['^running$', '^stopped$'])
-    validate_bool($service_cron_manage)
+    # Install
+    if $package_manage == true {
+        package { $package_name:
+            ensure  => $package_ensure,
+        }
+    }
 
-    class { 'fetchcrl::install': } ->
-    class { 'fetchcrl::config': } ->
-    class { 'fetchcrl::service': }
+    # Configure
+    file { 'fetch-crl.conf':
+        ensure  => present,
+        path    => '/etc/fetch-crl.conf',
+        mode    => '0644',
+        owner   => 'root',
+        group   => 'root',
+        content => template('fetchcrl/fetch-crl.conf.erb'),
+    }
+
+    # Run
+    if $service_boot_manage == true {
+        service { 'fetch-crl-boot':
+            # Default to false. If a CRL server is down, startup will fail.
+            ensure     => $service_boot_ensure,
+            enable     => $service_boot_enable,
+            hasrestart => true,
+        }
+    }
+    if $service_cron_manage == true {
+        service { 'fetch-crl-cron':
+            ensure     => $service_cron_ensure,
+            enable     => $service_cron_enable,
+            hasrestart => true,
+        }
+    }
 
 }
